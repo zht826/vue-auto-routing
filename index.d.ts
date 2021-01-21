@@ -5,7 +5,5 @@
  * in this package.
  */
 
-import { RouteConfig } from 'vue-router'
-
-declare const routes: RouteConfig[]
+declare const routes: any
 export default routes
