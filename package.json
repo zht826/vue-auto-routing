@@ -1,6 +1,6 @@
 {
   "name": "z-vue-auto-routing",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "zht826",
   "description": "Generate Vue Router routing automatically",
   "keywords": [

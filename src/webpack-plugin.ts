@@ -1,69 +1,68 @@
-import * as assert from 'assert'
-import * as fs from 'fs'
-import * as path from 'path'
-import { Compiler } from 'webpack'
-import { generateRoutes, GenerateConfig } from 'vue-route-generator'
-
-const pluginName = 'VueAutoRoutingPlugin'
-
-interface Options extends GenerateConfig {
-  outFile?: string;
-  moduleName?: string;
+"use strict";
+const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
+const vue_route_generator_1 = require("vue-route-generator");
+const pluginName = 'VueAutoRoutingPlugin';
+interface IOption {
+  pages: string;
+  moduleName: string;
 }
-
-namespace VueAutoRoutingPlugin {
-  export type AutoRoutingOptions = Options
-}
-
 class VueAutoRoutingPlugin {
-  constructor(private options: Options | Options[]) {
-    if (Array.isArray(options)) {
-      options.forEach(option => {
-        assert(option.pages, '`pages` is required')
-      })
-    } else {
-      assert(options.pages, '`pages` is required')
-    }
-  }
-
-  apply(compiler: Compiler) {
-    const generate = () => {
-      let data: any = {}
-      if (Array.isArray(this.options)) {
-        this.options.forEach(option => {
-          const code = generateRoutes(option)
-          if (option.moduleName) {
-            data[option.moduleName] = code
-          }
-        })
-      } else {
-        const code = generateRoutes(this.options)
-        if (this.options.moduleName) {
-          data[this.options.moduleName] = code
-        } else {
-          data = code
+    options: IOption[] | IOption;
+    constructor(options: any) {
+        this.options = options;
+        if (Array.isArray(options)) {
+            options.forEach(option => {
+                assert(option.pages, '`pages` is required');
+            });
         }
-      }
-      const to = path.resolve(__dirname, '../index.js')
-      data = JSON.stringify(data)
-      if (
-        fs.existsSync(to) &&
-        fs.readFileSync(to, 'utf8').trim() === data.trim()
-      ) {
-        return
-      }
-
-      fs.writeFileSync(to, data)
+        else {
+            assert(options.pages, '`pages` is required');
+        }
     }
+    apply(compiler: any) {
+        const generate = () => {
+            if (Array.isArray(this.options)) {
+                let indexContent = ''
+                this.options.forEach(option => {
+                    const code = vue_route_generator_1.generateRoutes(option);
+                    const to = path.resolve(__dirname, '../' + option.moduleName + '.js');
+                    if (fs.existsSync(to) &&
+                        fs.readFileSync(to, 'utf8').trim() === code.trim()) {
+                        return;
+                    }
+                    indexContent += `import ${option.moduleName} from './${option.moduleName}.js';\n`
+                    fs.writeFileSync(to, code);
+                });
+                if (indexContent !== '') {
+                    indexContent += `export default {${this.options.map(option => option.moduleName).join(',')}}`
+                }
+                const indexPath = path.resolve(__dirname, '../index.js');
+                if ((fs.existsSync(indexPath) &&
+                    fs.readFileSync(indexPath, 'utf8').trim() === indexContent.trim()) || indexContent === '') {
+                    return;
+                }
 
-    compiler.hooks.thisCompilation.tap(pluginName, (compilation) => {
-      try {
-        generate()
-      } catch (error) {
-        compilation.errors.push(error)
-      }
-    })
-  }
+                fs.writeFileSync(indexPath, indexContent);
+            } else {
+                const code = vue_route_generator_1.generateRoutes(this.options);
+                const to = path.resolve(__dirname, '../' + (this.options.moduleName || 'index') + '.js');
+                if (fs.existsSync(to) &&
+                    fs.readFileSync(to, 'utf8').trim() === code.trim()) {
+                    return;
+                }
+                fs.writeFileSync(to, code);
+            }
+        };
+        compiler.hooks.thisCompilation.tap(pluginName, (compilation: any) => {
+            try {
+                generate();
+            }
+            catch (error) {
+                compilation.errors.push(error);
+            }
+        });
+    }
 }
-
-export = VueAutoRoutingPlugin
+module.exports = VueAutoRoutingPlugin;
